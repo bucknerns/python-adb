@@ -168,7 +168,7 @@ class FileSyncConnection(object):
 
   def Read(self, expected_ids, read_data=True):
     """Read ADB messages and return FileSync packets."""
-    if self.send_buffer:
+    if self.send_idx:
       self._Flush()
 
     # Read one filesync packet off the recv buffer.
@@ -201,15 +201,15 @@ class FileSyncConnection(object):
 
   def _CanAddToSendBuffer(self, data_len):
     added_len = self.send_header_len + data_len
-    return len(self.send_buffer) + added_len < adb_protocol.MAX_ADB_DATA
+    return self.send_idx + added_len < adb_protocol.MAX_ADB_DATA
 
   def _Flush(self):
     try:
-      self.adb.Write(self.send_buffer)
+      self.adb.Write(self.send_buffer[:self.send_idx])
     except libusb1.USBError as e:
       raise adb_protocol.SendFailedError(
           'Could not send data %s' % self.send_buffer, e)
-    self.send_buffer = ''
+    self.send_idx = 0
 
   def _ReadBuffered(self, size):
     # Ensure recv buffer has enough data.
