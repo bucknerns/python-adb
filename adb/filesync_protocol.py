@@ -135,7 +135,9 @@ class FileSyncConnection(object):
     self.adb = adb_connection
 
     # Sending
-    self.send_buffer = b''
+    # Using a bytearray() saves a copy later when using libusb.
+    self.send_buffer = bytearray(adb_protocol.MAX_ADB_DATA)
+    self.send_idx = 0
     self.send_header_len = struct.calcsize('<2I')
 
     # Receiving
@@ -155,12 +157,14 @@ class FileSyncConnection(object):
       size: Optionally override size from len(data).
     """
     if data:
+      data = data.encode('utf8')
       size = len(data)
 
     if not self._CanAddToSendBuffer(len(data)):
       self._Flush() 
-    header = struct.pack('<2I', self.id_to_wire[command_id], size)
-    self.send_buffer += header + data.encode('utf8')
+    buf = struct.pack('<2I', self.id_to_wire[command_id], size) + data
+    self.send_buffer[self.send_idx:self.send_idx + len(buf)] = buf
+    self.send_idx += len(buf)
 
   def Read(self, expected_ids, read_data=True):
     """Read ADB messages and return FileSync packets."""
