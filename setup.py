@@ -15,7 +15,7 @@
 from setuptools import setup
 
 setup(
-    name='adb',
+    name='python-adb',
     packages=['adb'],
     version='1.1.0',
     author='Fahrzin Hemmati',
@@ -44,7 +44,7 @@ Android project's ADB.
 
     keywords=['android', 'adb', 'fastboot'],
 
-    install_requires=['libusb1>=1.0.16', 'M2Crypto>=0.21.1'],
+    install_requires=['libusb1>=1.0.16', 'M2Crypto>=0.21.1', "six"],
 
     extra_requires={
         'fastboot': 'progressbar>=2.3'

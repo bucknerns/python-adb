@@ -5,3 +5,7 @@ adb.egg-info/
 .tox/
 /adb.zip
 /fastboot.zip
+build/
+dist/
+python_adb.egg-info/
+
