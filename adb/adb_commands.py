@@ -101,7 +101,7 @@ class AdbCommands(object):
         device_state = cls.protocol_handler.Connect(
             usb, banner=banner, **kwargs)
         # Remove banner and colons after device state (state::banner)
-        device_state = device_state.split(':')[0]
+        device_state = device_state.split(b':')[0]
         return cls(usb, device_state)
 
     @classmethod
@@ -152,7 +152,7 @@ class AdbCommands(object):
                     self.Push(os.path.join(source_file, f),
                               device_filename + '/' + f)
                 return
-            source_file = open(source_file)
+            source_file = open(source_file, "rb")
 
         connection = self.protocol_handler.Open(
             self.handle, destination='sync:', timeout_ms=timeout_ms)
@@ -172,9 +172,9 @@ class AdbCommands(object):
           The file data if dest_file is not set.
         """
         if not dest_file:
-            dest_file = io.StringIO()
+            dest_file = io.BytesIO()
         elif isinstance(dest_file, str):
-            dest_file = open(dest_file, 'w')
+            dest_file = open(dest_file, 'wb')
         connection = self.protocol_handler.Open(
             self.handle, destination='sync:',
             timeout_ms=timeout_ms)
@@ -182,7 +182,7 @@ class AdbCommands(object):
         connection.Close()
         # An empty call to cStringIO.StringIO returns an instance of
         # cStringIO.OutputType.
-        if isinstance(dest_file, io.StringIO):
+        if isinstance(dest_file, io.BytesIO):
             return dest_file.getvalue()
 
     def Stat(self, device_filename):

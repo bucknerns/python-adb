@@ -234,14 +234,10 @@ class AdbMessage(object):
                     expected_cmds, cmd, (timeout_ms, total_timeout_ms))
 
         if data_length > 0:
-            data = ''
+            data = bytearray()
             while data_length > 0:
                 temp = usb.BulkRead(data_length, timeout_ms)
-                if isinstance(temp, bytes):
-                    data += temp.decode('ascii')
-                else:
-                    data += temp
-
+                data += temp
                 data_length -= len(temp)
 
             actual_checksum = cls.CalculateChecksum(data)
@@ -250,7 +246,8 @@ class AdbMessage(object):
                     'Received checksum %s != %s',
                     (actual_checksum, data_checksum))
         else:
-            data = ''
+            data = bytearray()
+
         return command, arg0, arg1, data
 
     @classmethod
@@ -384,7 +381,8 @@ class AdbMessage(object):
         Returns:
           The response from the service.
         """
-        return ''.join(cls.StreamingCommand(usb, service, command, timeout_ms))
+        return bytearray().join(
+            cls.StreamingCommand(usb, service, command, timeout_ms))
 
     @classmethod
     def StreamingCommand(cls, usb, service, command='', timeout_ms=None):
@@ -410,4 +408,4 @@ class AdbMessage(object):
         connection = cls.Open(usb, destination='%s:%s' % (service, command),
                               timeout_ms=timeout_ms)
         for data in connection.ReadUntilClose():
-            yield str(data)
+            yield data

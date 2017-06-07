@@ -16,7 +16,7 @@
 Implements the ADB protocol as seen in android's adb/adbd binaries, but only
 the host side.
 """
-
+import six
 import collections
 import stat
 import struct
@@ -83,7 +83,7 @@ class FilesyncProtocol(object):
         for cmd_id, _, data in cnxn.ReadUntil(('DATA',), 'DONE'):
             if cmd_id == 'DONE':
                 break
-            dest_file.write(str(data).decode('utf8'))
+            dest_file.write(data)
 
     @classmethod
     def Push(cls, connection, datafile, filename,
@@ -100,7 +100,8 @@ class FilesyncProtocol(object):
         Raises:
           PushFailedError: Raised on push failure.
         """
-        fileinfo = '%s,%s' % (filename, st_mode)
+        fileinfo = b'%s,%s' % (filename, six.b(str(st_mode)))
+        print([fileinfo])
 
         cnxn = FileSyncConnection(connection, '<2I')
         cnxn.Send('SEND', fileinfo)
@@ -135,7 +136,7 @@ class FileSyncConnection(object):
         self.adb = adb_connection
 
         # Sending
-        self.send_buffer = b''
+        self.send_buffer = bytearray()
         self.send_header_len = struct.calcsize('<2I')
 
         # Receiving
@@ -143,7 +144,7 @@ class FileSyncConnection(object):
         self.recv_header_format = recv_header_format.encode('utf8')
         self.recv_header_len = struct.calcsize(recv_header_format)
 
-    def Send(self, command_id, data='', size=0):
+    def Send(self, command_id, data=b'', size=0):
         """Send/buffer FileSync packets.
 
         Packets are buffered and only flushed when this connection is read
@@ -161,7 +162,7 @@ class FileSyncConnection(object):
         if not self._CanAddToSendBuffer(len(data)):
             self._Flush()
         header = struct.pack('<2I', self.id_to_wire[command_id], size)
-        self.send_buffer += header + data.encode('utf8')
+        self.send_buffer += header + data
 
     def Read(self, expected_ids, read_data=True):
         """Read ADB messages and return FileSync packets."""
@@ -207,7 +208,7 @@ class FileSyncConnection(object):
         except libusb1.USBError as e:
             raise adb_protocol.SendFailedError(
                 'Could not send data %s' % self.send_buffer, e)
-        self.send_buffer = ''
+        self.send_buffer = bytearray()
 
     def _ReadBuffered(self, size):
         # Ensure recv buffer has enough data.

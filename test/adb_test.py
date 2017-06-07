@@ -98,7 +98,7 @@ class AdbTest(BaseAdbTest):
 
     def testSmallResponseShell(self):
         command = 'keepin it real'
-        response = 'word.'
+        response = b'word.'
         usb = self._ExpectCommand('shell', command, response)
 
         adb_commands = self._Connect(usb)
@@ -108,18 +108,18 @@ class AdbTest(BaseAdbTest):
         command = 'keepin it real big'
         # The data doesn't have to be big, the point is that it just
         # concatenates the data from different WRTEs together.
-        responses = ['other stuff, ', 'and some words.']
+        responses = [b'other stuff, ', b'and some words.']
 
         usb = self._ExpectCommand('shell', command, *responses)
 
         adb_commands = self._Connect(usb)
-        self.assertEqual(''.join(responses), adb_commands.Shell(command))
+        self.assertEqual(b''.join(responses), adb_commands.Shell(command))
 
     def testStreamingResponseShell(self):
         command = 'keepin it real big'
         # expect multiple lines
 
-        responses = ['other stuff, ', 'and some words.']
+        responses = [b'other stuff, ', b'and some words.']
 
         usb = self._ExpectCommand('shell', command, *responses)
 
@@ -160,9 +160,8 @@ class FilesyncAdbTest(BaseAdbTest):
         return struct.pack('<%dI' % (len(int_parts) + 1), command, *int_parts)
 
     @classmethod
-    def _MakeWriteSyncPacket(cls, command, data='', size=None):
-        return cls._MakeSyncHeader(
-            command, size or len(data)) + data.encode("ascii")
+    def _MakeWriteSyncPacket(cls, command, data=b'', size=None):
+        return cls._MakeSyncHeader(command, size or len(data)) + data
 
     @classmethod
     def _ExpectSyncCommand(cls, write_commands, read_commands):
@@ -183,31 +182,31 @@ class FilesyncAdbTest(BaseAdbTest):
         return usb
 
     def testPush(self):
-        filedata = u'alo there, govnah'
+        filedata = b'alo there, govnah'
         mtime = 100
 
         send = [
-            self._MakeWriteSyncPacket('SEND', '/data,33272'),
+            self._MakeWriteSyncPacket('SEND', b'/data,33272'),
             self._MakeWriteSyncPacket('DATA', filedata),
             self._MakeWriteSyncPacket('DONE', size=mtime),
         ]
-        data = 'OKAY\0\0\0\0'
+        data = b'OKAY\0\0\0\0'
         usb = self._ExpectSyncCommand([b''.join(send)], [data])
-
         adb_commands = self._Connect(usb)
-        adb_commands.Push(io.StringIO(filedata), '/data', mtime=mtime)
+
+        adb_commands.Push(io.BytesIO(filedata), b'/data', mtime=mtime)
 
     def testPull(self):
-        filedata = "g'ddayta, govnah"
+        filedata = b"g'ddayta, govnah"
 
-        recv = self._MakeWriteSyncPacket('RECV', '/data')
+        recv = self._MakeWriteSyncPacket('RECV', b'/data')
         data = [
             self._MakeWriteSyncPacket('DATA', filedata),
             self._MakeWriteSyncPacket('DONE'),
         ]
         usb = self._ExpectSyncCommand([recv], [b''.join(data)])
         adb_commands = self._Connect(usb)
-        self.assertEqual(filedata, adb_commands.Pull('/data'))
+        self.assertEqual(filedata, adb_commands.Pull(b'/data'))
 
 
 if __name__ == '__main__':
