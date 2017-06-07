@@ -14,166 +14,168 @@
 # limitations under the License.
 """Tests for adb.fastboot."""
 
-import sys
-PYTHON_27 = sys.version_info < (3,0)
-
-if PYTHON_27:
-    from cStringIO import StringIO
-else:
-    from io import StringIO
 import os
+import sys
 import tempfile
 import unittest
 
 import common_stub
 from adb import fastboot
+PYTHON_27 = sys.version_info < (3, 0)
+
+if PYTHON_27:
+    from cStringIO import StringIO
+else:
+    from io import StringIO
 
 
 class FastbootTest(unittest.TestCase):
 
-  def setUp(self):
-    self.usb = common_stub.StubUsb()
+    def setUp(self):
+        self.usb = common_stub.StubUsb()
 
-  @staticmethod
-  def _SumLengths(items):
-    return sum(len(item) for item in items)
+    @staticmethod
+    def _SumLengths(items):
+        return sum(len(item) for item in items)
 
-  def ExpectDownload(self, writes, succeed=True, accept_data=True):
-    self.usb.ExpectWrite('download:%08x' % self._SumLengths(writes))
+    def ExpectDownload(self, writes, succeed=True, accept_data=True):
+        self.usb.ExpectWrite('download:%08x' % self._SumLengths(writes))
 
-    if accept_data:
-      self.usb.ExpectRead('DATA%08x' % self._SumLengths(writes))
-    else:
-      self.usb.ExpectRead('DATA%08x' % (self._SumLengths(writes) - 2))
+        if accept_data:
+            self.usb.ExpectRead('DATA%08x' % self._SumLengths(writes))
+        else:
+            self.usb.ExpectRead('DATA%08x' % (self._SumLengths(writes) - 2))
 
-    for data in writes:
-      self.usb.ExpectWrite(data)
+        for data in writes:
+            self.usb.ExpectWrite(data)
 
-    if succeed:
-      self.usb.ExpectRead('OKAYResult')
-    else:
-      self.usb.ExpectRead('FAILResult')
+        if succeed:
+            self.usb.ExpectRead('OKAYResult')
+        else:
+            self.usb.ExpectRead('FAILResult')
 
-  def ExpectFlash(self, partition, succeed=True):
-    self.usb.ExpectWrite('flash:%s' % partition)
-    self.usb.ExpectRead('INFORandom info from the bootloader')
-    if succeed:
-      self.usb.ExpectRead('OKAYDone')
-    else:
-      self.usb.ExpectRead('FAILDone')
+    def ExpectFlash(self, partition, succeed=True):
+        self.usb.ExpectWrite('flash:%s' % partition)
+        self.usb.ExpectRead('INFORandom info from the bootloader')
+        if succeed:
+            self.usb.ExpectRead('OKAYDone')
+        else:
+            self.usb.ExpectRead('FAILDone')
 
-  def testDownload(self):
-    raw = 'aoeuidhtnsqjkxbmwpyfgcrl'
-    data = StringIO(raw)
+    def testDownload(self):
+        raw = 'aoeuidhtnsqjkxbmwpyfgcrl'
+        data = StringIO(raw)
 
-    self.ExpectDownload([raw])
-    commands = fastboot.FastbootCommands(self.usb)
+        self.ExpectDownload([raw])
+        commands = fastboot.FastbootCommands(self.usb)
 
-    response = commands.Download(data)
-    self.assertEqual('Result', response)
+        response = commands.Download(data)
+        self.assertEqual('Result', response)
 
-  def testDownloadFail(self):
-    raw = 'aoeuidhtnsqjkxbmwpyfgcrl'
-    data = StringIO(raw)
+    def testDownloadFail(self):
+        raw = 'aoeuidhtnsqjkxbmwpyfgcrl'
+        data = StringIO(raw)
 
-    self.ExpectDownload([raw], succeed=False)
-    commands = fastboot.FastbootCommands(self.usb)
-    with self.assertRaises(fastboot.FastbootRemoteFailure):
-      commands.Download(data)
+        self.ExpectDownload([raw], succeed=False)
+        commands = fastboot.FastbootCommands(self.usb)
+        with self.assertRaises(fastboot.FastbootRemoteFailure):
+            commands.Download(data)
 
-    data = StringIO(raw)
-    self.ExpectDownload([raw], accept_data=False)
-    with self.assertRaises(fastboot.FastbootTransferError):
-      commands.Download(data)
+        data = StringIO(raw)
+        self.ExpectDownload([raw], accept_data=False)
+        with self.assertRaises(fastboot.FastbootTransferError):
+            commands.Download(data)
 
-  def testFlash(self):
-    partition = 'yarr'
+    def testFlash(self):
+        partition = 'yarr'
 
-    self.ExpectFlash(partition)
-    commands = fastboot.FastbootCommands(self.usb)
+        self.ExpectFlash(partition)
+        commands = fastboot.FastbootCommands(self.usb)
 
-    output = StringIO()
-    def InfoCb(message):
-      if message.header == 'INFO':
-        output.write(message.message)
-    response = commands.Flash(partition, info_cb=InfoCb)
-    self.assertEqual('Done', response)
-    self.assertEqual('Random info from the bootloader', output.getvalue())
+        output = StringIO()
 
-  def testFlashFail(self):
-    partition = 'matey'
+        def InfoCb(message):
+            if message.header == 'INFO':
+                output.write(message.message)
+        response = commands.Flash(partition, info_cb=InfoCb)
+        self.assertEqual('Done', response)
+        self.assertEqual('Random info from the bootloader', output.getvalue())
 
-    self.ExpectFlash(partition, succeed=False)
-    commands = fastboot.FastbootCommands(self.usb)
+    def testFlashFail(self):
+        partition = 'matey'
 
-    with self.assertRaises(fastboot.FastbootRemoteFailure):
-      commands.Flash(partition)
+        self.ExpectFlash(partition, succeed=False)
+        commands = fastboot.FastbootCommands(self.usb)
 
-  def testFlashFromFile(self):
-    partition = 'somewhere'
-    # More than one packet, ends somewhere into the 3rd packet.
-    raw = 'SOMETHING' * 1086
-    tmp = tempfile.NamedTemporaryFile(delete=False)
-    tmp.write(raw.encode('ascii'))
-    tmp.close()
-    progresses = []
+        with self.assertRaises(fastboot.FastbootRemoteFailure):
+            commands.Flash(partition)
 
-    pieces = []
-    chunk_size = fastboot.FastbootProtocol(None).chunk_kb * 1024
-    while raw:
-      pieces.append(raw[:chunk_size])
-      raw = raw[chunk_size:]
-    self.ExpectDownload(pieces)
-    self.ExpectFlash(partition)
+    def testFlashFromFile(self):
+        partition = 'somewhere'
+        # More than one packet, ends somewhere into the 3rd packet.
+        raw = 'SOMETHING' * 1086
+        tmp = tempfile.NamedTemporaryFile(delete=False)
+        tmp.write(raw.encode('ascii'))
+        tmp.close()
+        progresses = []
 
-    cb = lambda progress, total: progresses.append((progress, total))
+        pieces = []
+        chunk_size = fastboot.FastbootProtocol(None).chunk_kb * 1024
+        while raw:
+            pieces.append(raw[:chunk_size])
+            raw = raw[chunk_size:]
+        self.ExpectDownload(pieces)
+        self.ExpectFlash(partition)
 
-    commands = fastboot.FastbootCommands(self.usb)
-    commands.FlashFromFile(
-        partition, tmp.name, progress_callback=cb)
-    self.assertEqual(len(pieces), len(progresses))
-    os.remove(tmp.name)
+        def cb(progress, total):
+            return progresses.append((progress, total))
 
-  def testSimplerCommands(self):
-    commands = fastboot.FastbootCommands(self.usb)
+        commands = fastboot.FastbootCommands(self.usb)
+        commands.FlashFromFile(
+            partition, tmp.name, progress_callback=cb)
+        self.assertEqual(len(pieces), len(progresses))
+        os.remove(tmp.name)
 
-    self.usb.ExpectWrite('erase:vector')
-    self.usb.ExpectRead('OKAY')
-    commands.Erase('vector')
+    def testSimplerCommands(self):
+        commands = fastboot.FastbootCommands(self.usb)
 
-    self.usb.ExpectWrite('getvar:variable')
-    self.usb.ExpectRead('OKAYstuff')
-    self.assertEqual('stuff', commands.Getvar('variable'))
+        self.usb.ExpectWrite('erase:vector')
+        self.usb.ExpectRead('OKAY')
+        commands.Erase('vector')
 
-    self.usb.ExpectWrite('continue')
-    self.usb.ExpectRead('OKAY')
-    commands.Continue()
+        self.usb.ExpectWrite('getvar:variable')
+        self.usb.ExpectRead('OKAYstuff')
+        self.assertEqual('stuff', commands.Getvar('variable'))
 
-    self.usb.ExpectWrite('reboot')
-    self.usb.ExpectRead('OKAY')
-    commands.Reboot()
+        self.usb.ExpectWrite('continue')
+        self.usb.ExpectRead('OKAY')
+        commands.Continue()
 
-    self.usb.ExpectWrite('reboot-bootloader')
-    self.usb.ExpectRead('OKAY')
-    commands.RebootBootloader()
+        self.usb.ExpectWrite('reboot')
+        self.usb.ExpectRead('OKAY')
+        commands.Reboot()
 
-    self.usb.ExpectWrite('oem a little somethin')
-    self.usb.ExpectRead('OKAYsomethin')
-    self.assertEqual('somethin', commands.Oem('a little somethin'))
+        self.usb.ExpectWrite('reboot-bootloader')
+        self.usb.ExpectRead('OKAY')
+        commands.RebootBootloader()
 
-  def testVariousFailures(self):
-    commands = fastboot.FastbootCommands(self.usb)
+        self.usb.ExpectWrite('oem a little somethin')
+        self.usb.ExpectRead('OKAYsomethin')
+        self.assertEqual('somethin', commands.Oem('a little somethin'))
 
-    self.usb.ExpectWrite('continue')
-    self.usb.ExpectRead('BLEH')
-    with self.assertRaises(fastboot.FastbootInvalidResponse):
-      commands.Continue()
+    def testVariousFailures(self):
+        commands = fastboot.FastbootCommands(self.usb)
 
-    self.usb.ExpectWrite('continue')
-    self.usb.ExpectRead('DATA000000')
-    with self.assertRaises(fastboot.FastbootStateMismatch):
-      commands.Continue()
+        self.usb.ExpectWrite('continue')
+        self.usb.ExpectRead('BLEH')
+        with self.assertRaises(fastboot.FastbootInvalidResponse):
+            commands.Continue()
+
+        self.usb.ExpectWrite('continue')
+        self.usb.ExpectRead('DATA000000')
+        with self.assertRaises(fastboot.FastbootStateMismatch):
+            commands.Continue()
 
 
 if __name__ == '__main__':
-  unittest.main()
+    unittest.main()
