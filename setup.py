@@ -15,16 +15,17 @@
 from setuptools import setup
 
 setup(
-    name = 'adb',
-    packages = ['adb'],
-    version = '1.1.0',
-    author = 'Fahrzin Hemmati',
-    author_email = 'fahhem@gmail.com',
-    maintainer = 'Alex Lusco',
-    maintainer_email = 'alusco@google.com',
-    url = 'https://github.com/google/python-adb',
-    description = 'A pure python implementation of the Android ADB and Fastboot protocols',
-    long_description = '''
+    name='adb',
+    packages=['adb'],
+    version='1.1.0',
+    author='Fahrzin Hemmati',
+    author_email='fahhem@gmail.com',
+    maintainer='Alex Lusco',
+    maintainer_email='alusco@google.com',
+    url='https://github.com/google/python-adb',
+    description='A pure python implementation of the Android ADB and Fastboot '
+        'protocols',
+    long_description='''
 This repository contains a pure-python implementation of the Android
 ADB and Fastboot protocols, using libusb1 for USB communications.
 
@@ -41,21 +42,21 @@ communicates with a device that it wasn't intended to, unlike the
 Android project's ADB.
 ''',
 
-    keywords = ['android', 'adb', 'fastboot'],
+    keywords=['android', 'adb', 'fastboot'],
 
-    install_requires = ['libusb1>=1.0.16', 'M2Crypto>=0.21.1'],
+    install_requires=['libusb1>=1.0.16', 'M2Crypto>=0.21.1'],
 
-    extra_requires = {
+    extra_requires={
         'fastboot': 'progressbar>=2.3'
     },
 
-## classifier list https://pypi.python.org/pypi?:action=list_classifiers
-    classifiers = [
+    # classifier list https://pypi.python.org/pypi?:action=list_classifiers
+    classifiers=[
         'Development Status :: 4 - Beta',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2', 
-        'Programming Language :: Python :: 3', 
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
         'Topic :: Software Development :: Testing'
-        ]
+    ]
 )

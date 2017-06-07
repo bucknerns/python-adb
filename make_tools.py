@@ -21,8 +21,8 @@ These files can be executed via:
 The same way one would have run:
   python adb_debug.py devices
 
-The zips can be transferred to other computers (and other CPU architectures) for
-CPU and OS agnostic execution.
+The zips can be transferred to other computers (and other CPU architectures)
+for CPU and OS agnostic execution.
 """
 
 import os
@@ -34,27 +34,27 @@ THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
-  os.chdir(THIS_DIR)
-  with zipfile.ZipFile('adb.zip', 'w', zipfile.ZIP_DEFLATED) as z:
-    z.write('adb/__init__.py')
-    z.write('adb/adb_commands.py')
-    z.write('adb/adb_debug.py', '__main__.py')
-    z.write('adb/adb_protocol.py')
-    z.write('adb/common.py')
-    z.write('adb/common_cli.py')
-    z.write('adb/filesync_protocol.py')
-    z.write('adb/sign_m2crypto.py')
-    z.write('adb/sign_pythonrsa.py')
-    z.write('adb/usb_exceptions.py')
-  with zipfile.ZipFile('fastboot.zip', 'w', zipfile.ZIP_DEFLATED) as z:
-    z.write('adb/__init__.py')
-    z.write('adb/common.py')
-    z.write('adb/common_cli.py')
-    z.write('adb/fastboot.py')
-    z.write('adb/fastboot_debug.py', '__main__.py')
-    z.write('adb/usb_exceptions.py')
-  return 0
+    os.chdir(THIS_DIR)
+    with zipfile.ZipFile('adb.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+        z.write('adb/__init__.py')
+        z.write('adb/adb_commands.py')
+        z.write('adb/adb_debug.py', '__main__.py')
+        z.write('adb/adb_protocol.py')
+        z.write('adb/common.py')
+        z.write('adb/common_cli.py')
+        z.write('adb/filesync_protocol.py')
+        z.write('adb/sign_m2crypto.py')
+        z.write('adb/sign_pythonrsa.py')
+        z.write('adb/usb_exceptions.py')
+    with zipfile.ZipFile('fastboot.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+        z.write('adb/__init__.py')
+        z.write('adb/common.py')
+        z.write('adb/common_cli.py')
+        z.write('adb/fastboot.py')
+        z.write('adb/fastboot_debug.py', '__main__.py')
+        z.write('adb/usb_exceptions.py')
+    return 0
 
 
 if __name__ == '__main__':
-  sys.exit(main())
+    sys.exit(main())
